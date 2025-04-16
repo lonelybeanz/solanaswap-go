@@ -17,7 +17,7 @@ func (p *Parser) processOKXSwaps(instructionIndex int) []SwapData {
 	p.Log.Infof("starting okx swap parsing for instruction index: %d", instructionIndex)
 
 	parentInstruction := p.txInfo.Message.Instructions[instructionIndex]
-	programID := p.allAccountKeys[parentInstruction.ProgramIDIndex]
+	programID := p.allAccountKeys[parentInstruction.GetProgramIdIndex()]
 
 	if !programID.Equals(OKX_DEX_ROUTER_PROGRAM_ID) {
 		p.Log.Warnf("instruction %d skipped: not okx dex router program", instructionIndex)
@@ -29,7 +29,7 @@ func (p *Parser) processOKXSwaps(instructionIndex int) []SwapData {
 		return nil
 	}
 
-	decodedBytes, err := base58.Decode(parentInstruction.Data.String())
+	decodedBytes, err := base58.Decode(string(parentInstruction.GetData()))
 	if err != nil {
 		p.Log.Errorf("failed to decode okx swap instruction %d: %s", instructionIndex, err)
 		return nil
@@ -75,7 +75,7 @@ func (p *Parser) processOKXRouterSwaps(instructionIndex int) []SwapData {
 	}
 
 	for _, inner := range innerInstructions {
-		progID := p.allAccountKeys[inner.ProgramIDIndex]
+		progID := p.allAccountKeys[inner.GetProgramIdIndex()]
 
 		switch {
 		case progID.Equals(RAYDIUM_V4_PROGRAM_ID) ||

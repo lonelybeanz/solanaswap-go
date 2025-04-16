@@ -6,6 +6,7 @@ import (
 	ag_binary "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
 	"github.com/mr-tron/base58"
+	"github.com/rpcpool/yellowstone-grpc/examples/golang/proto"
 )
 
 var (
@@ -36,7 +37,7 @@ type PumpfunCreateEvent struct {
 func (p *Parser) processPumpfunSwaps(instructionIndex int) []SwapData {
 	var swaps []SwapData
 	for _, innerInstructionSet := range p.txMeta.InnerInstructions {
-		if innerInstructionSet.Index == uint16(instructionIndex) {
+		if innerInstructionSet.Index == uint32(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				if p.isPumpFunTradeEventInstruction(innerInstruction) {
 					eventData, err := p.parsePumpfunTradeEventInstruction(innerInstruction)
@@ -53,8 +54,8 @@ func (p *Parser) processPumpfunSwaps(instructionIndex int) []SwapData {
 	return swaps
 }
 
-func (p *Parser) parsePumpfunTradeEventInstruction(instruction solana.CompiledInstruction) (*PumpfunTradeEvent, error) {
-	decodedBytes, err := base58.Decode(instruction.Data.String())
+func (p *Parser) parsePumpfunTradeEventInstruction(instruction *proto.InnerInstruction) (*PumpfunTradeEvent, error) {
+	decodedBytes, err := base58.Decode(string(instruction.GetData()))
 	if err != nil {
 		return nil, fmt.Errorf("error decoding instruction data: %s", err)
 	}

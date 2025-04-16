@@ -8,6 +8,7 @@ import (
 	ag_binary "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
 	"github.com/mr-tron/base58"
+	"github.com/rpcpool/yellowstone-grpc/examples/golang/proto"
 )
 
 type MoonshotTradeInstructionWithMint struct {
@@ -47,13 +48,13 @@ func (p *Parser) processMoonshotSwaps() []SwapData {
 }
 
 // isMoonshotTrade checks if the instruction is a Moonshot trade
-func (p *Parser) isMoonshotTrade(instruction solana.CompiledInstruction) bool {
-	return p.txInfo.Message.AccountKeys[instruction.ProgramIDIndex].Equals(MOONSHOT_PROGRAM_ID) && len(instruction.Data) == 33 && len(instruction.Accounts) == 11
+func (p *Parser) isMoonshotTrade(instruction *proto.CompiledInstruction) bool {
+	return solana.PublicKeyFromBytes(p.txInfo.Message.AccountKeys[instruction.GetProgramIdIndex()]) == MOONSHOT_PROGRAM_ID && len(instruction.Data) == 33 && len(instruction.Accounts) == 11
 }
 
 // parseMoonshotTradeInstruction parses a Moonshot trade instruction
-func (p *Parser) parseMoonshotTradeInstruction(instruction solana.CompiledInstruction) (*SwapData, error) {
-	decodedBytes, err := base58.Decode(instruction.Data.String())
+func (p *Parser) parseMoonshotTradeInstruction(instruction *proto.CompiledInstruction) (*SwapData, error) {
+	decodedBytes, err := base58.Decode(string(instruction.GetData()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode base58 instruction data: %v", err)
 	}
@@ -72,7 +73,7 @@ func (p *Parser) parseMoonshotTradeInstruction(instruction solana.CompiledInstru
 
 	moonshotTokenMint := p.txInfo.Message.AccountKeys[instruction.Accounts[6]]
 
-	moonshotTokenBalanceChanges, err := p.getTokenBalanceChanges(moonshotTokenMint)
+	moonshotTokenBalanceChanges, err := p.getTokenBalanceChanges(solana.PublicKeyFromBytes(moonshotTokenMint))
 	if err != nil {
 		return nil, fmt.Errorf("error getting moonshot token balance changes: %s", err)
 	}
@@ -85,7 +86,7 @@ func (p *Parser) parseMoonshotTradeInstruction(instruction solana.CompiledInstru
 	instructionWithMint := &MoonshotTradeInstructionWithMint{
 		TokenAmount:      uint64(abs(moonshotTokenBalanceChanges)),
 		CollateralAmount: uint64(abs(nativeSolBalanceChanges)),
-		Mint:             moonshotTokenMint,
+		Mint:             solana.PublicKeyFromBytes(moonshotTokenMint),
 		TradeType:        tradeType,
 	}
 
@@ -113,7 +114,7 @@ func (p *Parser) getTokenBalanceChanges(mint solana.PublicKey) (int64, error) {
 	var balanceFound bool
 
 	for _, preBalance := range p.txMeta.PreTokenBalances {
-		if preBalance.Mint.Equals(mint) && preBalance.Owner.Equals(signer) {
+		if preBalance.Mint == mint.String() && preBalance.Owner == solana.PublicKeyFromBytes(signer).String() {
 			preAmount, _ = strconv.ParseInt(preBalance.UiTokenAmount.Amount, 10, 64)
 			balanceFound = true
 			break
@@ -121,7 +122,7 @@ func (p *Parser) getTokenBalanceChanges(mint solana.PublicKey) (int64, error) {
 	}
 
 	for _, postBalance := range p.txMeta.PostTokenBalances {
-		if postBalance.Mint.Equals(mint) && postBalance.Owner.Equals(signer) {
+		if postBalance.Mint == (mint.String()) && postBalance.Owner == solana.PublicKeyFromBytes(signer).String() {
 			postAmount, _ = strconv.ParseInt(postBalance.UiTokenAmount.Amount, 10, 64)
 			balanceFound = true
 			break

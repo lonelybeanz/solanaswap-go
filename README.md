@@ -15,7 +15,7 @@ Parses a Solana transaction and extracts the swap info, supports multiple AMMs. 
 To install the solanaswap-go package, use the following command:
 
 ```bash
-go get github.com/franco-bianco/solanaswap-go
+go get /github.com/lonelybeanz/solanaswap-go
 ```
 
 ## Usage
@@ -33,7 +33,7 @@ import (
 
 	"github.com/gagliardetto/solana-go/rpc"
 	solana "github.com/gagliardetto/solana-go"
-	solanaswapgo "github.com/franco-bianco/solanaswap-go/solanaswap-go"
+	solanaswapgo "/github.com/lonelybeanz/solanaswap-go/solanaswap-go"
 )
 ```
 

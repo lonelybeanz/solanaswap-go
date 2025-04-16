@@ -7,6 +7,7 @@ import (
 	ag_binary "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
 	"github.com/mr-tron/base58"
+	"github.com/rpcpool/yellowstone-grpc/examples/golang/proto"
 )
 
 type JupiterSwapEvent struct {
@@ -28,7 +29,7 @@ var JupiterRouteEventDiscriminator = [16]byte{228, 69, 165, 46, 81, 203, 154, 29
 func (p *Parser) processJupiterSwaps(instructionIndex int) []SwapData {
 	var swaps []SwapData
 	for _, innerInstructionSet := range p.txMeta.InnerInstructions {
-		if innerInstructionSet.Index == uint16(instructionIndex) {
+		if innerInstructionSet.Index == uint32(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				if p.isJupiterRouteEventInstruction(innerInstruction) {
 					eventData, err := p.parseJupiterRouteEventInstruction(innerInstruction)
@@ -55,8 +56,8 @@ func (p *Parser) containsDCAProgram() bool {
 	return false
 }
 
-func (p *Parser) parseJupiterRouteEventInstruction(instruction solana.CompiledInstruction) (*JupiterSwapEventData, error) {
-	decodedBytes, err := base58.Decode(instruction.Data.String())
+func (p *Parser) parseJupiterRouteEventInstruction(instruction *proto.InnerInstruction) (*JupiterSwapEventData, error) {
+	decodedBytes, err := base58.Decode(string(instruction.GetData()))
 	if err != nil {
 		return nil, fmt.Errorf("error decoding instruction data: %s", err)
 	}
@@ -96,14 +97,33 @@ func (p *Parser) extractSPLDecimals() error {
 	mintToDecimals := make(map[string]uint8)
 
 	for _, accountInfo := range p.txMeta.PostTokenBalances {
-		if !accountInfo.Mint.IsZero() {
-			mintAddress := accountInfo.Mint.String()
+		if !(accountInfo.Mint == "") {
+			mintAddress := accountInfo.Mint
 			mintToDecimals[mintAddress] = uint8(accountInfo.UiTokenAmount.Decimals)
 		}
 	}
 
-	processInstruction := func(instr solana.CompiledInstruction) {
-		if !p.allAccountKeys[instr.ProgramIDIndex].Equals(solana.TokenProgramID) {
+	processInstruction := func(instr *proto.InnerInstruction) {
+		if !p.allAccountKeys[instr.GetProgramIdIndex()].Equals(solana.TokenProgramID) {
+			return
+		}
+
+		if len(instr.Data) == 0 || (instr.Data[0] != 3 && instr.Data[0] != 12) {
+			return
+		}
+
+		if len(instr.Accounts) < 3 {
+			return
+		}
+
+		mint := p.allAccountKeys[instr.Accounts[1]].String()
+		if _, exists := mintToDecimals[mint]; !exists {
+			mintToDecimals[mint] = 0
+		}
+	}
+
+	processCompiledInstruction := func(instr *proto.CompiledInstruction) {
+		if !p.allAccountKeys[instr.GetProgramIdIndex()].Equals(solana.TokenProgramID) {
 			return
 		}
 
@@ -122,7 +142,7 @@ func (p *Parser) extractSPLDecimals() error {
 	}
 
 	for _, instr := range p.txInfo.Message.Instructions {
-		processInstruction(instr)
+		processCompiledInstruction(instr)
 	}
 	for _, innerSet := range p.txMeta.InnerInstructions {
 		for _, instr := range innerSet.Instructions {

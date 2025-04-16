@@ -5,11 +5,12 @@ import (
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/mr-tron/base58"
+	"github.com/rpcpool/yellowstone-grpc/examples/golang/proto"
 )
 
 // isTransfer checks if the instruction is a token transfer (Raydium, Orca)
-func (p *Parser) isTransfer(instr solana.CompiledInstruction) bool {
-	progID := p.allAccountKeys[instr.ProgramIDIndex]
+func (p *Parser) isTransfer(instr *proto.InnerInstruction) bool {
+	progID := p.allAccountKeys[instr.GetProgramIdIndex()]
 
 	if !progID.Equals(solana.TokenProgramID) {
 		return false
@@ -33,8 +34,8 @@ func (p *Parser) isTransfer(instr solana.CompiledInstruction) bool {
 }
 
 // isTransferCheck checks if the instruction is a token transfer check (Meteora)
-func (p *Parser) isTransferCheck(instr solana.CompiledInstruction) bool {
-	progID := p.allAccountKeys[instr.ProgramIDIndex]
+func (p *Parser) isTransferCheck(instr *proto.InnerInstruction) bool {
+	progID := p.allAccountKeys[instr.GetProgramIdIndex()]
 
 	if !progID.Equals(solana.TokenProgramID) && !progID.Equals(solana.Token2022ProgramID) {
 		return false
@@ -57,22 +58,22 @@ func (p *Parser) isTransferCheck(instr solana.CompiledInstruction) bool {
 	return true
 }
 
-func (p *Parser) isPumpFunTradeEventInstruction(inst solana.CompiledInstruction) bool {
-	if !p.allAccountKeys[inst.ProgramIDIndex].Equals(PUMP_FUN_PROGRAM_ID) || len(inst.Data) < 16 {
+func (p *Parser) isPumpFunTradeEventInstruction(inst *proto.InnerInstruction) bool {
+	if !p.allAccountKeys[inst.GetProgramIdIndex()].Equals(PUMP_FUN_PROGRAM_ID) || len(inst.Data) < 16 {
 		return false
 	}
-	decodedBytes, err := base58.Decode(inst.Data.String())
+	decodedBytes, err := base58.Decode(string(inst.GetData()))
 	if err != nil {
 		return false
 	}
 	return bytes.Equal(decodedBytes[:16], PumpfunTradeEventDiscriminator[:])
 }
 
-func (p *Parser) isJupiterRouteEventInstruction(inst solana.CompiledInstruction) bool {
-	if !p.allAccountKeys[inst.ProgramIDIndex].Equals(JUPITER_PROGRAM_ID) || len(inst.Data) < 16 {
+func (p *Parser) isJupiterRouteEventInstruction(inst *proto.InnerInstruction) bool {
+	if !p.allAccountKeys[inst.GetProgramIdIndex()].Equals(JUPITER_PROGRAM_ID) || len(inst.Data) < 16 {
 		return false
 	}
-	decodedBytes, err := base58.Decode(inst.Data.String())
+	decodedBytes, err := base58.Decode(string(inst.GetData()))
 	if err != nil {
 		return false
 	}

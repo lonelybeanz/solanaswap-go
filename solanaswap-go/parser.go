@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/gagliardetto/solana-go"
-	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/sirupsen/logrus"
+
+	pb "github.com/rpcpool/yellowstone-grpc/examples/golang/proto"
 )
 
 const (
@@ -24,26 +25,26 @@ type TokenTransfer struct {
 }
 
 type Parser struct {
-	txMeta          *rpc.TransactionMeta
-	txInfo          *solana.Transaction
+	txMeta          *pb.TransactionStatusMeta
+	txInfo          *pb.Transaction
 	allAccountKeys  solana.PublicKeySlice
 	splTokenInfoMap map[string]TokenInfo
 	splDecimalsMap  map[string]uint8
 	Log             *logrus.Logger
 }
 
-func NewTransactionParser(tx *rpc.GetTransactionResult) (*Parser, error) {
-	txInfo, err := tx.Transaction.GetTransaction()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get transaction: %w", err)
-	}
+// func NewTransactionParser(tx *rpc.GetTransactionResult) (*Parser, error) {
+// 	txInfo, err := tx.Transaction.GetTransaction()
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to get transaction: %w", err)
+// 	}
 
-	return NewTransactionParserFromTransaction(txInfo, tx.Meta)
-}
+// 	return NewTransactionParserFromTransaction(txInfo, tx.Meta)
+// }
 
-func NewTransactionParserFromTransaction(tx *solana.Transaction, txMeta *rpc.TransactionMeta) (*Parser, error) {
-	allAccountKeys := append(tx.Message.AccountKeys, txMeta.LoadedAddresses.Writable...)
-	allAccountKeys = append(allAccountKeys, txMeta.LoadedAddresses.ReadOnly...)
+func NewTransactionParserFromTransaction(tx *pb.Transaction, txMeta *pb.TransactionStatusMeta) (*Parser, error) {
+	allAccountKeys := append(tx.Message.AccountKeys, txMeta.LoadedWritableAddresses...)
+	allAccountKeys = append(allAccountKeys, txMeta.LoadedReadonlyAddresses...)
 
 	log := logrus.New()
 	log.SetFormatter(&logrus.TextFormatter{
@@ -51,10 +52,16 @@ func NewTransactionParserFromTransaction(tx *solana.Transaction, txMeta *rpc.Tra
 		FullTimestamp:   true,
 	})
 
+	// 将 [][]byte 转换为 solana.PublicKeySlice
+	var publicKeySlice solana.PublicKeySlice
+	for _, key := range allAccountKeys {
+		publicKey := solana.PublicKeyFromBytes(key)
+		publicKeySlice = append(publicKeySlice, publicKey)
+	}
 	parser := &Parser{
 		txMeta:         txMeta,
 		txInfo:         tx,
-		allAccountKeys: allAccountKeys,
+		allAccountKeys: publicKeySlice,
 		Log:            log,
 	}
 
@@ -79,7 +86,7 @@ func (p *Parser) ParseTransaction() ([]SwapData, error) {
 
 	skip := false
 	for i, outerInstruction := range p.txInfo.Message.Instructions {
-		progID := p.allAccountKeys[outerInstruction.ProgramIDIndex]
+		progID := p.allAccountKeys[outerInstruction.GetProgramIdIndex()]
 		switch {
 		case progID.Equals(JUPITER_PROGRAM_ID):
 			skip = true
@@ -105,7 +112,7 @@ func (p *Parser) ParseTransaction() ([]SwapData, error) {
 	}
 
 	for i, outerInstruction := range p.txInfo.Message.Instructions {
-		progID := p.allAccountKeys[outerInstruction.ProgramIDIndex]
+		progID := p.allAccountKeys[outerInstruction.GetProgramIdIndex()]
 		switch {
 		case progID.Equals(RAYDIUM_V4_PROGRAM_ID) ||
 			progID.Equals(RAYDIUM_CPMM_PROGRAM_ID) ||
@@ -146,8 +153,15 @@ func (p *Parser) ProcessSwapData(swapDatas []SwapData) (*SwapInfo, error) {
 		return nil, fmt.Errorf("no swap data provided")
 	}
 
+	// Convert [][]byte to []solana.Signature
+	signatures := make([]solana.Signature, 0, len(p.txInfo.GetSignatures()))
+	for _, sig := range p.txInfo.GetSignatures() {
+		signature := solana.Signature(sig)
+		signatures = append(signatures, signature)
+	}
+
 	swapInfo := &SwapInfo{
-		Signatures: p.txInfo.Signatures,
+		Signatures: signatures,
 	}
 
 	if p.containsDCAProgram() {
@@ -304,7 +318,7 @@ func (p *Parser) processRouterSwaps(instructionIndex int) []SwapData {
 	processedProtocols := make(map[string]bool)
 
 	for _, inner := range innerInstructions {
-		progID := p.allAccountKeys[inner.ProgramIDIndex]
+		progID := p.allAccountKeys[inner.GetProgramIdIndex()]
 
 		switch {
 		case (progID.Equals(RAYDIUM_V4_PROGRAM_ID) ||
@@ -341,14 +355,14 @@ func (p *Parser) processRouterSwaps(instructionIndex int) []SwapData {
 	return swaps
 }
 
-func (p *Parser) getInnerInstructions(index int) []solana.CompiledInstruction {
+func (p *Parser) getInnerInstructions(index int) []*pb.InnerInstruction {
 	if p.txMeta == nil || p.txMeta.InnerInstructions == nil {
 		return nil
 	}
 
 	for _, inner := range p.txMeta.InnerInstructions {
-		if inner.Index == uint16(index) {
-			return inner.Instructions
+		if inner.Index == uint32(index) {
+			return inner.GetInstructions()
 		}
 	}
 

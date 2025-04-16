@@ -6,7 +6,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/gagliardetto/solana-go"
+	"github.com/rpcpool/yellowstone-grpc/examples/golang/proto"
 )
 
 type TransferCheck struct {
@@ -28,7 +28,7 @@ type TransferCheck struct {
 func (p *Parser) processMeteoraSwaps(instructionIndex int) []SwapData {
 	var swaps []SwapData
 	for _, innerInstructionSet := range p.txMeta.InnerInstructions {
-		if innerInstructionSet.Index == uint16(instructionIndex) {
+		if innerInstructionSet.Index == uint32(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				switch {
 				case p.isTransferCheck(innerInstruction):
@@ -48,7 +48,7 @@ func (p *Parser) processMeteoraSwaps(instructionIndex int) []SwapData {
 	return swaps
 }
 
-func (p *Parser) processTransferCheck(instr solana.CompiledInstruction) *TransferCheck {
+func (p *Parser) processTransferCheck(instr *proto.InnerInstruction) *TransferCheck {
 	amount := binary.LittleEndian.Uint64(instr.Data[1:9])
 
 	transferData := &TransferCheck{

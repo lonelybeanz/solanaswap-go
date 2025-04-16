@@ -1,16 +1,5 @@
 package main
 
-import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"log"
-
-	solanaswapgo "github.com/franco-bianco/solanaswap-go/solanaswap-go"
-	"github.com/gagliardetto/solana-go"
-	"github.com/gagliardetto/solana-go/rpc"
-)
-
 /*
 Example Transactions:
 - Orca: 2kAW5GAhPZjM3NoSrhJVHdEpwjmq9neWtckWnjopCfsmCGB27e3v2ZyMM79FdsL4VWGEtYSFi1sF1Zhs7bqdoaVT
@@ -33,40 +22,40 @@ Example Transactions:
 */
 
 func main() {
-	rpcClient := rpc.New(rpc.MainNetBeta.RPC)
-	txSig := solana.MustSignatureFromBase58("51uGEbMA4AXmiq1zM7NQAtwLFQ9K4rHEAbLdmQMyxG4JcXmuVzjDiQQHHD4pC8Dx1LCgbuhLWgkMPEeHK7YxGs2Q")
+	// rpcClient := rpc.New(rpc.MainNetBeta.RPC)
+	// txSig := solana.MustSignatureFromBase58("51uGEbMA4AXmiq1zM7NQAtwLFQ9K4rHEAbLdmQMyxG4JcXmuVzjDiQQHHD4pC8Dx1LCgbuhLWgkMPEeHK7YxGs2Q")
 
-	var maxTxVersion uint64 = 0
-	tx, err := rpcClient.GetTransaction(
-		context.TODO(),
-		txSig,
-		&rpc.GetTransactionOpts{
-			Commitment:                     rpc.CommitmentConfirmed,
-			MaxSupportedTransactionVersion: &maxTxVersion,
-		},
-	)
-	if err != nil {
-		log.Fatalf("error getting tx: %s", err)
-	}
+	// var maxTxVersion uint64 = 0
+	// tx, err := rpcClient.GetTransaction(
+	// 	context.TODO(),
+	// 	txSig,
+	// 	&rpc.GetTransactionOpts{
+	// 		Commitment:                     rpc.CommitmentConfirmed,
+	// 		MaxSupportedTransactionVersion: &maxTxVersion,
+	// 	},
+	// )
+	// if err != nil {
+	// 	log.Fatalf("error getting tx: %s", err)
+	// }
 
-	parser, err := solanaswapgo.NewTransactionParser(tx)
-	if err != nil {
-		log.Fatalf("error creating parser: %s", err)
-	}
+	// parser, err := solanaswapgo.NewTransactionParser(tx)
+	// if err != nil {
+	// 	log.Fatalf("error creating parser: %s", err)
+	// }
 
-	transactionData, err := parser.ParseTransaction()
-	if err != nil {
-		log.Fatalf("error parsing transaction: %s", err)
-	}
+	// transactionData, err := parser.ParseTransaction()
+	// if err != nil {
+	// 	log.Fatalf("error parsing transaction: %s", err)
+	// }
 
-	marshalledData, _ := json.MarshalIndent(transactionData, "", "  ")
-	fmt.Println(string(marshalledData))
+	// marshalledData, _ := json.MarshalIndent(transactionData, "", "  ")
+	// fmt.Println(string(marshalledData))
 
-	swapInfo, err := parser.ProcessSwapData(transactionData)
-	if err != nil {
-		log.Fatalf("error processing swap data: %s", err)
-	}
+	// swapInfo, err := parser.ProcessSwapData(transactionData)
+	// if err != nil {
+	// 	log.Fatalf("error processing swap data: %s", err)
+	// }
 
-	marshalledSwapData, _ := json.MarshalIndent(swapInfo, "", "  ")
-	fmt.Println(string(marshalledSwapData))
+	// marshalledSwapData, _ := json.MarshalIndent(swapInfo, "", "  ")
+	// fmt.Println(string(marshalledSwapData))
 }

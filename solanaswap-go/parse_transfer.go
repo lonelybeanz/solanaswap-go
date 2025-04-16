@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 
 	"github.com/gagliardetto/solana-go"
+	"github.com/rpcpool/yellowstone-grpc/examples/golang/proto"
 )
 
 type TransferInfo struct {
@@ -28,7 +29,7 @@ type TokenInfo struct {
 func (p *Parser) processRaydSwaps(instructionIndex int) []SwapData {
 	var swaps []SwapData
 	for _, innerInstructionSet := range p.txMeta.InnerInstructions {
-		if innerInstructionSet.Index == uint16(instructionIndex) {
+		if innerInstructionSet.Index == uint32(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				switch {
 				case p.isTransfer(innerInstruction):
@@ -51,7 +52,7 @@ func (p *Parser) processRaydSwaps(instructionIndex int) []SwapData {
 func (p *Parser) processOrcaSwaps(instructionIndex int) []SwapData {
 	var swaps []SwapData
 	for _, innerInstructionSet := range p.txMeta.InnerInstructions {
-		if innerInstructionSet.Index == uint16(instructionIndex) {
+		if innerInstructionSet.Index == uint32(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				if p.isTransfer(innerInstruction) {
 					transfer := p.processTransfer(innerInstruction)
@@ -65,7 +66,7 @@ func (p *Parser) processOrcaSwaps(instructionIndex int) []SwapData {
 	return swaps
 }
 
-func (p *Parser) processTransfer(instr solana.CompiledInstruction) *TransferData {
+func (p *Parser) processTransfer(instr *proto.InnerInstruction) *TransferData {
 	amount := binary.LittleEndian.Uint64(instr.Data[1:9])
 
 	transferData := &TransferData{
@@ -91,17 +92,41 @@ func (p *Parser) extractSPLTokenInfo() error {
 	splTokenAddresses := make(map[string]TokenInfo)
 
 	for _, accountInfo := range p.txMeta.PostTokenBalances {
-		if !accountInfo.Mint.IsZero() {
+		if !(accountInfo.Mint == "") {
 			accountKey := p.allAccountKeys[accountInfo.AccountIndex].String()
 			splTokenAddresses[accountKey] = TokenInfo{
-				Mint:     accountInfo.Mint.String(),
-				Decimals: accountInfo.UiTokenAmount.Decimals,
+				Mint:     accountInfo.Mint,
+				Decimals: uint8(accountInfo.UiTokenAmount.Decimals),
 			}
 		}
 	}
 
-	processInstruction := func(instr solana.CompiledInstruction) {
-		if !p.allAccountKeys[instr.ProgramIDIndex].Equals(solana.TokenProgramID) {
+	processInstruction := func(instr *proto.InnerInstruction) {
+		if !p.allAccountKeys[instr.GetProgramIdIndex()].Equals(solana.TokenProgramID) {
+			return
+		}
+
+		if len(instr.Data) == 0 || (instr.Data[0] != 3 && instr.Data[0] != 12) {
+			return
+		}
+
+		if len(instr.Accounts) < 3 {
+			return
+		}
+
+		source := p.allAccountKeys[instr.Accounts[0]].String()
+		destination := p.allAccountKeys[instr.Accounts[1]].String()
+
+		if _, exists := splTokenAddresses[source]; !exists {
+			splTokenAddresses[source] = TokenInfo{Mint: "", Decimals: 0}
+		}
+		if _, exists := splTokenAddresses[destination]; !exists {
+			splTokenAddresses[destination] = TokenInfo{Mint: "", Decimals: 0}
+		}
+	}
+
+	processCompiledInstruction := func(instr *proto.CompiledInstruction) {
+		if !p.allAccountKeys[instr.GetProgramIdIndex()].Equals(solana.TokenProgramID) {
 			return
 		}
 
@@ -125,7 +150,7 @@ func (p *Parser) extractSPLTokenInfo() error {
 	}
 
 	for _, instr := range p.txInfo.Message.Instructions {
-		processInstruction(instr)
+		processCompiledInstruction(instr)
 	}
 	for _, innerSet := range p.txMeta.InnerInstructions {
 		for _, instr := range innerSet.Instructions {
