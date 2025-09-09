@@ -5,6 +5,7 @@ import (
 
 	ag_binary "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
+	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/mr-tron/base58"
 )
 
@@ -55,7 +56,7 @@ func (p *Parser) processPumpfunSwaps(instructionIndex int) []SwapData {
 		if innerInstructionSet.Index == uint16(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				if p.isPumpFunTradeEventInstruction(innerInstruction) {
-					eventData, err := p.parsePumpfunTradeEventInstruction(innerInstruction)
+					eventData, err := p.parsePumpfunTradeEventInstruction(p.convertRPCToSolanaInstruction(innerInstruction))
 					if err != nil {
 						p.Log.Errorf("error processing Pumpfun trade event: %s", err)
 					}
@@ -87,7 +88,7 @@ func (p *Parser) getPumpFunPool() *PumpFunPool {
 	for _, inner := range p.txMeta.InnerInstructions {
 		for _, inst := range inner.Instructions {
 			if p.allAccountKeys[inst.ProgramIDIndex].Equals(PUMP_FUN_PROGRAM_ID) {
-				pumpFunPool := p.processPumpFunAccounts(inst)
+				pumpFunPool := p.processPumpFunAccounts(p.convertRPCToSolanaInstruction(inst))
 				if pumpFunPool != nil {
 					return pumpFunPool
 				}
@@ -139,7 +140,7 @@ func (p *Parser) getPumpFunEvent() *PumpfunTradeEvent { // anchor Self CPI Log
 
 		for _, inst := range inner.Instructions {
 			if p.allAccountKeys[inst.ProgramIDIndex].Equals(PUMP_FUN_PROGRAM_ID) && len(inst.Accounts) == 1 {
-				pumpAmmEvent, err := p.parsePumpfunTradeEventInstruction(inst)
+				pumpAmmEvent, err := p.parsePumpfunTradeEventInstruction(p.convertRPCToSolanaInstruction(inst))
 				if err != nil {
 					continue
 				}
@@ -179,7 +180,7 @@ func handlePumpfunTradeEvent(decoder *ag_binary.Decoder) (*PumpfunTradeEvent, er
 	return &trade, nil
 }
 
-func (p *Parser) parsePumpfunCreateEventInstruction(instruction solana.CompiledInstruction) (*PumpfunCreateEvent, error) {
+func (p *Parser) parsePumpfunCreateEventInstruction(instruction rpc.CompiledInstruction) (*PumpfunCreateEvent, error) {
 	decodedBytes, err := base58.Decode(instruction.Data.String())
 	if err != nil {
 		return nil, fmt.Errorf("error decoding instruction data: %s", err)

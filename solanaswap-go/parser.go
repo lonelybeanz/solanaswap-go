@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	pb "solana-bot/internal/pb/yellowstone-grpc"
+	pb "github.com/lonelybeanz/solanaswap-go/yellowstone-grpc"
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
@@ -109,10 +109,10 @@ func NewPbTransactionParserFromTransaction(pbtx *pb.Transaction, pbtxMeta *pb.Tr
 	for i, inner := range pbtxMeta.InnerInstructions {
 		txMeta.InnerInstructions[i] = rpc.InnerInstruction{
 			Index:        uint16(inner.Index),
-			Instructions: make([]solana.CompiledInstruction, len(inner.Instructions)),
+			Instructions: make([]rpc.CompiledInstruction, len(inner.Instructions)),
 		}
 		for j, instr := range inner.Instructions {
-			txMeta.InnerInstructions[i].Instructions[j] = solana.CompiledInstruction{
+			txMeta.InnerInstructions[i].Instructions[j] = rpc.CompiledInstruction{
 				ProgramIDIndex: uint16(instr.GetProgramIdIndex()),
 				Accounts:       convertToUint16(instr.Accounts),
 				Data:           instr.Data,
@@ -715,7 +715,7 @@ func (p *Parser) processRouterSwaps(instructionIndex int) []SwapData {
 	return swaps
 }
 
-func (p *Parser) getInnerInstructions(index int) []solana.CompiledInstruction {
+func (p *Parser) getInnerInstructions(index int) []rpc.CompiledInstruction {
 	if p.txMeta == nil || p.txMeta.InnerInstructions == nil {
 		return nil
 	}

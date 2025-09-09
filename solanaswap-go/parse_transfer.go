@@ -37,13 +37,13 @@ func (p *Parser) processRaydSwaps(instructionIndex int) []SwapData {
 		if innerInstructionSet.Index == uint16(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				switch {
-				case p.isTokenTransfer(innerInstruction):
-					transfer := p.processTokenTransfer(innerInstruction)
+				case p.isTokenTransfer(p.convertRPCToSolanaInstruction(innerInstruction)):
+					transfer := p.processTokenTransfer(p.convertRPCToSolanaInstruction(innerInstruction))
 					if transfer != nil {
 						swaps = append(swaps, SwapData{Type: RAYDIUM, Data: transfer})
 					}
-				case p.isTransferCheck(innerInstruction):
-					transfer := p.processTransferCheck(innerInstruction)
+				case p.isTransferCheck(p.convertRPCToSolanaInstruction(innerInstruction)):
+					transfer := p.processTransferCheck(p.convertRPCToSolanaInstruction(innerInstruction))
 					if transfer != nil {
 						swaps = append(swaps, SwapData{Type: RAYDIUM, Data: transfer})
 					}
@@ -59,8 +59,8 @@ func (p *Parser) processOrcaSwaps(instructionIndex int) []SwapData {
 	for _, innerInstructionSet := range p.txMeta.InnerInstructions {
 		if innerInstructionSet.Index == uint16(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
-				if p.isTokenTransfer(innerInstruction) {
-					transfer := p.processTokenTransfer(innerInstruction)
+				if p.isTokenTransfer(p.convertRPCToSolanaInstruction(innerInstruction)) {
+					transfer := p.processTokenTransfer(p.convertRPCToSolanaInstruction(innerInstruction))
 					if transfer != nil {
 						swaps = append(swaps, SwapData{Type: ORCA, Data: transfer})
 					}
@@ -174,7 +174,7 @@ func (p *Parser) extractSPLTokenInfo() error {
 	}
 	for _, innerSet := range p.txMeta.InnerInstructions {
 		for _, instr := range innerSet.Instructions {
-			processInstruction(instr)
+			processInstruction(p.convertRPCToSolanaInstruction(instr))
 		}
 	}
 

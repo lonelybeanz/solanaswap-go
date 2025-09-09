@@ -31,18 +31,18 @@ func (p *Parser) processMeteoraSwaps(instructionIndex int) []SwapData {
 		if innerInstructionSet.Index == uint16(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				switch {
-				case p.isTransferCheck(innerInstruction):
-					transfer := p.processTransferCheck(innerInstruction)
+				case p.isTransferCheck(p.convertRPCToSolanaInstruction(innerInstruction)):
+					transfer := p.processTransferCheck(p.convertRPCToSolanaInstruction(innerInstruction))
 					if transfer != nil {
 						swaps = append(swaps, SwapData{Type: METEORA, Data: transfer})
 					}
-				case p.isTokenTransfer(innerInstruction):
-					transfer := p.processTokenTransfer(innerInstruction)
+				case p.isTokenTransfer(p.convertRPCToSolanaInstruction(innerInstruction)):
+					transfer := p.processTokenTransfer(p.convertRPCToSolanaInstruction(innerInstruction))
 					if transfer != nil {
 						swaps = append(swaps, SwapData{Type: METEORA, Data: transfer})
 					}
-				case p.isSystemTransfer(innerInstruction):
-					transfer := p.processSystemTransfer(innerInstruction)
+				case p.isSystemTransfer(p.convertRPCToSolanaInstruction(innerInstruction)):
+					transfer := p.processSystemTransfer(p.convertRPCToSolanaInstruction(innerInstruction))
 					if transfer != nil {
 						swaps = append(swaps, SwapData{Type: METEORA, Data: transfer})
 					}
@@ -59,18 +59,18 @@ func (p *Parser) processAxionSwaps(instructionIndex int) []SwapData {
 		if innerInstructionSet.Index == uint16(instructionIndex) {
 			for _, innerInstruction := range innerInstructionSet.Instructions {
 				switch {
-				case p.isTransferCheck(innerInstruction):
-					transfer := p.processTransferCheck(innerInstruction)
+				case p.isTransferCheck(p.convertRPCToSolanaInstruction(innerInstruction)):
+					transfer := p.processTransferCheck(p.convertRPCToSolanaInstruction(innerInstruction))
 					if transfer != nil {
 						swaps = append(swaps, SwapData{Type: AXION, Data: transfer})
 					}
-				case p.isTokenTransfer(innerInstruction):
-					transfer := p.processTokenTransfer(innerInstruction)
+				case p.isTokenTransfer(p.convertRPCToSolanaInstruction(innerInstruction)):
+					transfer := p.processTokenTransfer(p.convertRPCToSolanaInstruction(innerInstruction))
 					if transfer != nil {
 						swaps = append(swaps, SwapData{Type: AXION, Data: transfer})
 					}
-				case p.isSystemTransfer(innerInstruction):
-					transfer := p.processSystemTransfer(innerInstruction)
+				case p.isSystemTransfer(p.convertRPCToSolanaInstruction(innerInstruction)):
+					transfer := p.processSystemTransfer(p.convertRPCToSolanaInstruction(innerInstruction))
 					if transfer != nil {
 						swaps = append(swaps, SwapData{Type: AXION, Data: transfer})
 					}

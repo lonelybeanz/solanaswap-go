@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/gagliardetto/solana-go"
+	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/mr-tron/base58"
 )
 
@@ -97,7 +98,7 @@ func (p *Parser) isPumpAmmInstruction(inst solana.CompiledInstruction) bool {
 	return p.allAccountKeys[inst.ProgramIDIndex].Equals(PUMP_AMM_PROGRAM_ID) && len(inst.Accounts) == 21
 }
 
-func (p *Parser) isPumpfunCreateEventInstruction(inst solana.CompiledInstruction) bool {
+func (p *Parser) isPumpfunCreateEventInstruction(inst rpc.CompiledInstruction) bool {
 	if !p.allAccountKeys[inst.ProgramIDIndex].Equals(PUMP_FUN_PROGRAM_ID) || len(inst.Data) < 16 {
 		return false
 	}
@@ -108,7 +109,7 @@ func (p *Parser) isPumpfunCreateEventInstruction(inst solana.CompiledInstruction
 	return bytes.Equal(decodedBytes[:16], PumpfunCreateEventDiscriminator[:])
 }
 
-func (p *Parser) isPumpFunTradeEventInstruction(inst solana.CompiledInstruction) bool {
+func (p *Parser) isPumpFunTradeEventInstruction(inst rpc.CompiledInstruction) bool {
 	if !p.allAccountKeys[inst.ProgramIDIndex].Equals(PUMP_FUN_PROGRAM_ID) || len(inst.Data) < 16 {
 		return false
 	}
@@ -119,7 +120,7 @@ func (p *Parser) isPumpFunTradeEventInstruction(inst solana.CompiledInstruction)
 	return bytes.Equal(decodedBytes[:16], PumpfunTradeEventDiscriminator[:])
 }
 
-func (p *Parser) isJupiterRouteEventInstruction(inst solana.CompiledInstruction) bool {
+func (p *Parser) isJupiterRouteEventInstruction(inst rpc.CompiledInstruction) bool {
 	if !p.allAccountKeys[inst.ProgramIDIndex].Equals(JUPITER_PROGRAM_ID) || len(inst.Data) < 16 {
 		return false
 	}

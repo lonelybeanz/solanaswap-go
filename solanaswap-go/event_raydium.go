@@ -9,16 +9,16 @@ import (
 )
 
 type RaydiumLaunchpadPool struct {
-	Authority       solana.PublicKey
-	GlobalConfig    solana.PublicKey
-	PlatformConfig  solana.PublicKey
-	PoolState       solana.PublicKey
-	BaseVault       solana.PublicKey
-	QuoteVault      solana.PublicKey
-	BaseMint        solana.PublicKey
-	QuoteMint       solana.PublicKey
-	EventAuthority  solana.PublicKey
-	
+	Authority      solana.PublicKey
+	GlobalConfig   solana.PublicKey
+	PlatformConfig solana.PublicKey
+	PoolState      solana.PublicKey
+	BaseVault      solana.PublicKey
+	QuoteVault     solana.PublicKey
+	BaseMint       solana.PublicKey
+	QuoteMint      solana.PublicKey
+	EventAuthority solana.PublicKey
+
 	VirtualBase     uint64
 	VirtualQuote    uint64
 	RealBaseBefore  uint64
@@ -74,7 +74,7 @@ func (p *Parser) getRaydiumLaunchpadPool() *RaydiumLaunchpadPool {
 	for _, inner := range p.txMeta.InnerInstructions {
 		for _, inst := range inner.Instructions {
 			if p.allAccountKeys[inst.ProgramIDIndex].Equals(RAYDIUM_Launchpad_PROGRAM_ID) && len(inst.Accounts) >= 18 {
-				pumpAmmPool := p.processRaydiumLaunchpadAccounts(inst)
+				pumpAmmPool := p.processRaydiumLaunchpadAccounts(p.convertRPCToSolanaInstruction(inst))
 				if pumpAmmPool != nil {
 					return pumpAmmPool
 				}
@@ -122,7 +122,7 @@ func (p *Parser) getRaydiumLaunchpadEvent() *RaydiumLaunchpadEvent { // anchor S
 	for _, inner := range p.txMeta.InnerInstructions {
 		for _, inst := range inner.Instructions {
 			if p.allAccountKeys[inst.ProgramIDIndex].Equals(RAYDIUM_Launchpad_PROGRAM_ID) && len(inst.Accounts) == 1 {
-				pumpAmmEvent, err := parseRaydiumLaunchpadEventInstruction(inst)
+				pumpAmmEvent, err := parseRaydiumLaunchpadEventInstruction(p.convertRPCToSolanaInstruction(inst))
 				if err != nil {
 					continue
 				}

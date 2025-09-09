@@ -6,6 +6,7 @@ import (
 
 	ag_binary "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
+	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/mr-tron/base58"
 )
 
@@ -55,7 +56,7 @@ func (p *Parser) containsDCAProgram() bool {
 	return false
 }
 
-func (p *Parser) parseJupiterRouteEventInstruction(instruction solana.CompiledInstruction) (*JupiterSwapEventData, error) {
+func (p *Parser) parseJupiterRouteEventInstruction(instruction rpc.CompiledInstruction) (*JupiterSwapEventData, error) {
 	decodedBytes, err := base58.Decode(instruction.Data.String())
 	if err != nil {
 		return nil, fmt.Errorf("error decoding instruction data: %s", err)
@@ -126,7 +127,7 @@ func (p *Parser) extractSPLDecimals() error {
 	}
 	for _, innerSet := range p.txMeta.InnerInstructions {
 		for _, instr := range innerSet.Instructions {
-			processInstruction(instr)
+			processInstruction(p.convertRPCToSolanaInstruction(instr))
 		}
 	}
 

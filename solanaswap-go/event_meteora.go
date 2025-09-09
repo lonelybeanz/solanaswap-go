@@ -5,6 +5,7 @@ import (
 
 	ag_binary "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
+	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/mr-tron/base58"
 )
 
@@ -57,7 +58,7 @@ func (p *Parser) getMeteoraDbcPool() *MeteoraDbcPool {
 	for _, inner := range p.txInfo.Message.Instructions {
 
 		if p.allAccountKeys[inner.ProgramIDIndex].Equals(METEORA_DBC_PROGRAM_ID) && len(inner.Accounts) == 15 {
-			pumpAmmPool := p.processMeteoraDbcAccounts(inner)
+			pumpAmmPool := p.processMeteoraDbcAccountsSolana(inner)
 			if pumpAmmPool != nil {
 				return pumpAmmPool
 			}
@@ -68,7 +69,7 @@ func (p *Parser) getMeteoraDbcPool() *MeteoraDbcPool {
 	for _, inner := range p.txMeta.InnerInstructions {
 		for _, inst := range inner.Instructions {
 			if p.allAccountKeys[inst.ProgramIDIndex].Equals(METEORA_DBC_PROGRAM_ID) && len(inst.Accounts) == 15 {
-				pumpAmmPool := p.processMeteoraDbcAccounts(inst)
+				pumpAmmPool := p.processMeteoraDbcAccountsRpc(inst)
 				if pumpAmmPool != nil {
 					return pumpAmmPool
 				}
@@ -78,7 +79,7 @@ func (p *Parser) getMeteoraDbcPool() *MeteoraDbcPool {
 	return nil
 }
 
-func (p *Parser) processMeteoraDbcAccounts(inner solana.CompiledInstruction) *MeteoraDbcPool {
+func (p *Parser) processMeteoraDbcAccountsSolana(inner solana.CompiledInstruction) *MeteoraDbcPool {
 	var accounts MeteoraDbcPool
 	accounts.PoolAuthority = p.allAccountKeys[inner.Accounts[0]]
 	accounts.Config = p.allAccountKeys[inner.Accounts[1]]
@@ -92,7 +93,22 @@ func (p *Parser) processMeteoraDbcAccounts(inner solana.CompiledInstruction) *Me
 	accounts.ReferralTokenAccount = p.allAccountKeys[inner.Accounts[12]]
 	accounts.EventAuthority = p.allAccountKeys[inner.Accounts[13]]
 	return &accounts
+}
 
+func (p *Parser) processMeteoraDbcAccountsRpc(inner rpc.CompiledInstruction) *MeteoraDbcPool {
+	var accounts MeteoraDbcPool
+	accounts.PoolAuthority = p.allAccountKeys[inner.Accounts[0]]
+	accounts.Config = p.allAccountKeys[inner.Accounts[1]]
+	accounts.Pool = p.allAccountKeys[inner.Accounts[2]]
+	accounts.BaseVault = p.allAccountKeys[inner.Accounts[5]]
+	accounts.QuoteVault = p.allAccountKeys[inner.Accounts[6]]
+	accounts.BaseMint = p.allAccountKeys[inner.Accounts[7]]
+	accounts.QuoteMint = p.allAccountKeys[inner.Accounts[8]]
+	accounts.TokenBaseProgram = p.allAccountKeys[inner.Accounts[10]]
+	accounts.TokenQuoteProgram = p.allAccountKeys[inner.Accounts[11]]
+	accounts.ReferralTokenAccount = p.allAccountKeys[inner.Accounts[12]]
+	accounts.EventAuthority = p.allAccountKeys[inner.Accounts[13]]
+	return &accounts
 }
 
 func (p *Parser) getMeteoraDbcEvent() *MeteoraDbcEvent { // anchor Self CPI Log
@@ -103,7 +119,7 @@ func (p *Parser) getMeteoraDbcEvent() *MeteoraDbcEvent { // anchor Self CPI Log
 	for _, inner := range p.txInfo.Message.Instructions {
 
 		if p.allAccountKeys[inner.ProgramIDIndex].Equals(METEORA_DBC_PROGRAM_ID) && len(inner.Accounts) == 1 {
-			pumpAmmEvent, err := parseMeteoraDbcEventInstruction(inner)
+			pumpAmmEvent, err := parseMeteoraDbcEventInstructionSolana(inner)
 			if err != nil {
 				continue
 			}
@@ -117,7 +133,7 @@ func (p *Parser) getMeteoraDbcEvent() *MeteoraDbcEvent { // anchor Self CPI Log
 	for _, inner := range p.txMeta.InnerInstructions {
 		for _, inst := range inner.Instructions {
 			if p.allAccountKeys[inst.ProgramIDIndex].Equals(METEORA_DBC_PROGRAM_ID) && len(inst.Accounts) == 1 {
-				pumpAmmEvent, err := parseMeteoraDbcEventInstruction(inst)
+				pumpAmmEvent, err := parseMeteoraDbcEventInstructionRpc(inst)
 				if err != nil {
 					continue
 				}
@@ -130,7 +146,7 @@ func (p *Parser) getMeteoraDbcEvent() *MeteoraDbcEvent { // anchor Self CPI Log
 	return nil
 }
 
-func parseMeteoraDbcEventInstruction(instruction solana.CompiledInstruction) (*MeteoraDbcEvent, error) {
+func parseMeteoraDbcEventInstructionSolana(instruction solana.CompiledInstruction) (*MeteoraDbcEvent, error) {
 	decodedBytes, err := base58.Decode(instruction.Data.String())
 	if err != nil {
 		return nil, fmt.Errorf("error decoding instruction data: %s", err)
@@ -139,6 +155,17 @@ func parseMeteoraDbcEventInstruction(instruction solana.CompiledInstruction) (*M
 
 	return handleMeteoraDbcEvent(decoder)
 }
+
+func parseMeteoraDbcEventInstructionRpc(instruction rpc.CompiledInstruction) (*MeteoraDbcEvent, error) {
+	decodedBytes, err := base58.Decode(instruction.Data.String())
+	if err != nil {
+		return nil, fmt.Errorf("error decoding instruction data: %s", err)
+	}
+	decoder := ag_binary.NewBorshDecoder(decodedBytes[16:])
+
+	return handleMeteoraDbcEvent(decoder)
+}
+
 func handleMeteoraDbcEvent(decoder *ag_binary.Decoder) (*MeteoraDbcEvent, error) {
 	var event MeteoraDbcEvent
 	if err := decoder.Decode(&event); err != nil {

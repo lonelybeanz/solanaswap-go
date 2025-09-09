@@ -67,12 +67,12 @@ func (p *Parser) processPumpAmmSwaps(instructionIndex int) []SwapData {
 
 	for _, inner := range innerInstructions {
 		switch {
-		case p.isTransferCheck(inner):
-			swaps = append(swaps, p.processTransferCheckInstruction(userAccount.String(), inner)...)
-		case p.isTokenTransfer(inner):
-			swaps = append(swaps, p.processTokenTransferInstruction(userAccount.String(), inner)...)
-		case p.isSystemTransfer(inner):
-			swaps = append(swaps, p.processSystemTransferInstruction(userAccount.String(), inner)...)
+		case p.isTransferCheck(p.convertRPCToSolanaInstruction(inner)):
+			swaps = append(swaps, p.processTransferCheckInstruction(userAccount.String(), p.convertRPCToSolanaInstruction(inner))...)
+		case p.isTokenTransfer(p.convertRPCToSolanaInstruction(inner)):
+			swaps = append(swaps, p.processTokenTransferInstruction(userAccount.String(), p.convertRPCToSolanaInstruction(inner))...)
+		case p.isSystemTransfer(p.convertRPCToSolanaInstruction(inner)):
+			swaps = append(swaps, p.processSystemTransferInstruction(userAccount.String(), p.convertRPCToSolanaInstruction(inner))...)
 		}
 	}
 
@@ -241,7 +241,7 @@ func (p *Parser) getPumpAmmPool() *PumpAmmPool {
 	for _, inner := range p.txMeta.InnerInstructions {
 		for _, inst := range inner.Instructions {
 			if p.allAccountKeys[inst.ProgramIDIndex].Equals(PUMP_AMM_PROGRAM_ID) {
-				pumpAmmPool := p.processPumpAmmAccounts(inst)
+				pumpAmmPool := p.processPumpAmmAccounts(p.convertRPCToSolanaInstruction(inst))
 				if pumpAmmPool != nil {
 					return pumpAmmPool
 				}
@@ -294,7 +294,7 @@ func (p *Parser) getPumpAmmEvent() *PumpAmmEvent { // anchor Self CPI Log
 	for _, inner := range p.txMeta.InnerInstructions {
 		for _, inst := range inner.Instructions {
 			if p.allAccountKeys[inst.ProgramIDIndex].Equals(PUMP_AMM_PROGRAM_ID) && len(inst.Accounts) == 1 {
-				pumpAmmEvent, err := parsePumpAmmEventInstruction(inst)
+				pumpAmmEvent, err := parsePumpAmmEventInstruction(p.convertRPCToSolanaInstruction(inst))
 				if err != nil {
 					continue
 				}
